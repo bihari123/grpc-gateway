@@ -1,0 +1,5 @@
+ version: v1
+ deps:
+ # adding well known types by google
+  - buf.build/googleapis/googleapis
+

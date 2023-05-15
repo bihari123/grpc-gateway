@@ -65,10 +65,22 @@ func Bootstrap() error {
 		}
 	}
 
+	getPackage := []string{"get", "-v"}
+	getPackage = append(getPackage, tools...)
+
+	cmd := exec.Command("go", getPackage...)
+	cmd.Dir = "_tools"
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
 	install := []string{"install", "-v"}
 	install = append(install, tools...)
 
-	cmd := exec.Command("go", install...)
+	cmd = exec.Command("go", install...)
 	cmd.Dir = "_tools"
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -85,8 +97,6 @@ func Build() error {
 	}
 
 	fmt.Println("Done.")
-	fmt.Printf("\nRun the following to start Flipt:\n")
-	fmt.Printf("\n%v\n", color.CyanString(`./bin/flipt --config config/local.yml`))
 	return nil
 }
 
@@ -120,6 +130,18 @@ const (
 func Proto() error {
 	mg.Deps(Bootstrap)
 	fmt.Println("Generating proto files...")
+
+	if _, err := os.Stat("buf.yaml"); err != nil {
+		if err := sh.Run("buf", "mod", "init"); err != nil {
+			fmt.Println("error in buf mod init")
+			return err
+		}
+	}
+	if err := sh.Run("buf", "mod", "update"); err != nil {
+		fmt.Println("error in buf mod update")
+		return err
+	}
+
 	return sh.RunV("buf", "generate")
 }
 
@@ -173,4 +195,17 @@ func Prep() error {
 	fmt.Println("Preparing...")
 	mg.Deps(Clean)
 	return nil
+}
+
+// RunProxy runs the proxy/main.go
+func RunProxy() error {
+	fmt.Println("Running proxy....")
+	return sh.RunV("go", "run", "proxy/main.go")
+}
+
+// RunServer runs the proxy/main.go
+func RunServer() error {
+	mg.Deps(Proto)
+	fmt.Println("Running server....")
+	return sh.RunV("go", "run", "server/main.go")
 }
